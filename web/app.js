@@ -6,7 +6,8 @@
 // Automatically use whatever IP/host the page was loaded from.
 // Works on both localhost (Mac) and your phone on the same Wi-Fi.
 const API_BASE = `${location.protocol}//${location.host}`;
-const GOOGLE_API_KEY = window.GOOGLE_MAPS_API_KEY;
+// Read lazily so /config fetch has time to complete before Maps JS loads
+function getGoogleApiKey() { return window.GOOGLE_MAPS_API_KEY || ""; }
 
 // ─────────────────────────────────────────────────────────
 // SETTINGS STORE  (mirrors SettingsStore in Dart)
@@ -704,7 +705,7 @@ function loadGoogleMaps() {
 
     window._googleMapsReady = resolve;
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=places&callback=_googleMapsReady`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${getGoogleApiKey()}&libraries=places&callback=_googleMapsReady`;
     script.async = true;
     document.head.appendChild(script);
   });
