@@ -40,8 +40,9 @@ const Settings = {
 
     const total = moneySignal + timeSignal;
     let wM = 0.5, wT = 0.5;
-    if (total > 0) {
-      const blend = 0.7;
+    // Only apply learned preference weighting after 5 picks, at 10% blend
+    if (total > 0 && history.length >= 5) {
+      const blend = 0.1;
       wM = blend * (moneySignal / total) + (1 - blend) * 0.5;
       wT = blend * (timeSignal  / total) + (1 - blend) * 0.5;
       const s = wM + wT;
