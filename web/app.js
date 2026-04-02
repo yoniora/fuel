@@ -332,8 +332,8 @@ async function onCardPick(type, station, cardEl, color) {
   renderSettingsPrefs();
 
   // Show confirm
-  const confirm = document.getElementById(`confirm-${type}`);
-  confirm.classList.remove("hidden");
+  const confirm = cardEl.querySelector(`#confirm-${type}`);
+  if (confirm) confirm.classList.remove("hidden");
   cardEl.style.borderColor = color;
   cardEl.style.borderWidth = "2px";
 
@@ -343,7 +343,7 @@ async function onCardPick(type, station, cardEl, color) {
 
   // Hide confirm after 2s
   await sleep(1600);
-  confirm.classList.add("hidden");
+  if (confirm) confirm.classList.add("hidden");
   cardEl.style.borderColor = "";
   cardEl.style.borderWidth = "";
 }
@@ -352,27 +352,7 @@ async function onCardPick(type, station, cardEl, color) {
 // WEIGHT BADGE
 // ─────────────────────────────────────────────────────────
 function updateWeightBadge() {
-  const history = Settings.pickHistory;
-  const badge   = document.getElementById("weight-badge");
-
-  if (!badge) return;
-  if (history.length === 0) { badge.classList.add("hidden"); return; }
-
-  const wM = Settings.wMoney;
-  const wT = Settings.wTime;
-  const moneyPct = Math.round(wM * 100);
-  const timePct  = Math.round(wT * 100);
-  const leaning  = wM > wT ? "cost-focused" : "time-focused";
-  const emoji    = wM > wT ? "💰" : "⚡";
-
-  document.getElementById("weight-emoji").textContent = emoji;
-  document.getElementById("weight-label").textContent = `Personalised for you · ${leaning}`;
-  document.getElementById("wb-cost-fill").style.width = `${moneyPct}%`;
-  document.getElementById("wb-time-fill").style.width = `${timePct}%`;
-  document.getElementById("wb-cost-pct").textContent = `${moneyPct}%`;
-  document.getElementById("wb-time-pct").textContent = `${timePct}%`;
-
-  badge.classList.remove("hidden");
+  // Weight badge was removed from the UI — nothing to update.
 }
 
 // ─────────────────────────────────────────────────────────
