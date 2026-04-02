@@ -355,6 +355,7 @@ function updateWeightBadge() {
   const history = Settings.pickHistory;
   const badge   = document.getElementById("weight-badge");
 
+  if (!badge) return;
   if (history.length === 0) { badge.classList.add("hidden"); return; }
 
   const wM = Settings.wMoney;
