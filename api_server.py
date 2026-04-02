@@ -89,7 +89,7 @@ NSW_API_SECRET = os.getenv("NSW_API_SECRET") #or os.getenv("FUEL_API_SECRET")
 NSW_BASE = "https://api.onegov.nsw.gov.au"
 NSW_TOKEN_URL = f"{NSW_BASE}/oauth/client_credential/accesstoken"
 NSW_PRICES_ALL_URL = f"{NSW_BASE}/FuelPriceCheck/v2/fuel/prices"
-# (Optional later) NSW_LOVS_URL = f"{NSW_BASE}/FuelCheckRefData/v2/fuel/lovs"
+NSW_LOVS_URL       = f"{NSW_BASE}/FuelCheckRefData/v2/fuel/lovs"
 
 # --------- NSW reference (station locations/brands) cache ----------
 _STATIONS_REF: dict[int, dict] = {}   # stationcode -> {name, brand, lat, lng, ...}
@@ -406,12 +406,8 @@ async def _refresh_reference_if_needed(force: bool = False) -> None:
     if not force and _STATIONS_REF_AT and (datetime.now(timezone.utc) - _STATIONS_REF_AT) < _STATIONS_REF_TTL:
         return
 
-    url = os.getenv("NSW_LOVS_URL", "").strip()
-    if not url:
-        raise HTTPException(status_code=500, detail="Missing NSW_LOVS_URL env var")
-
     data = await _nsw_get_with_rotation(
-        url,
+        NSW_LOVS_URL,
         extra_headers={"if-modified-since": "01/01/2000 12:00:00 AM"},
         params={"states": "NSW"},
     )
