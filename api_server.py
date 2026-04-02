@@ -709,6 +709,17 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/env")
+def debug_env():
+    """Temporary: shows which env vars are present (not their values)."""
+    keys_to_check = [
+        "GOOGLE_API_KEY", "NSW_API_KEY_1", "NSW_API_SECRET_1",
+        "NSW_API_KEY_2", "NSW_API_SECRET_2", "NSW_API_KEY_3",
+        "NSW_API_SECRET_3", "NSW_API_KEY_4", "NSW_API_SECRET_4",
+    ]
+    return {k: ("SET" if os.getenv(k) else "MISSING") for k in keys_to_check}
+
+
 @app.get("/autocomplete")
 async def autocomplete(q: str, lat: float = -33.8688, lng: float = 151.2093):
     """
