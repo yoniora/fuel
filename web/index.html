@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>NSW Fuel Optimiser</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <!-- Google Fonts: DM Sans (matches Flutter app) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Google Maps JS -->
+  <script>
+    // Loaded dynamically in app.js after DOM ready
+    window.GOOGLE_MAPS_API_KEY = "AIzaSyCtYBy64xlAcvreLQivPsoaiJCh9o2BzCk";
+  </script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SIDEBAR NAV
+════════════════════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">⛽</span>
+    <span class="logo-text">NSW Fuel</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link active" data-page="finder" onclick="showPage('finder',this)">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      Find Fuel
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="map" onclick="showPage('map',this)">
+      <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+      Map
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="settings" onclick="showPage('settings',this)">
+      <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+      Settings
+    </a></li>
+  </ul>
+</nav>
+
+<!-- Mobile bottom nav -->
+<nav class="bottom-nav">
+  <a href="#" class="bnav-link active" data-page="finder" onclick="showPage('finder',this)">
+    <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    <span>Find Fuel</span>
+  </a>
+  <a href="#" class="bnav-link" data-page="map" onclick="showPage('map',this)">
+    <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+    <span>Map</span>
+  </a>
+  <a href="#" class="bnav-link" data-page="settings" onclick="showPage('settings',this)">
+    <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+    <span>Settings</span>
+  </a>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════ -->
+<main class="main-content">
+
+  <!-- ─── PAGE: FINDER ──────────────────────── -->
+  <div id="page-finder" class="page active">
+    <div class="page-inner">
+
+      <header class="page-header">
+        <div class="header-icon">⛽</div>
+        <div>
+          <h1>Find Fuel</h1>
+          <p class="header-sub">NSW optimised routes</p>
+        </div>
+      </header>
+
+
+      <!-- Input card -->
+      <div class="card input-card">
+        <div class="field-group">
+          <div class="field-wrap">
+            <span class="field-icon green">
+              <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+            </span>
+            <div class="autocomplete-wrap" id="origin-wrap">
+              <input type="text" id="origin-input" class="field-input" placeholder="From — address or suburb" autocomplete="off" />
+              <ul class="autocomplete-list" id="origin-suggestions"></ul>
+            </div>
+            <button class="gps-btn" id="gps-btn" title="Use my location">
+              <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06z"/></svg>
+            </button>
+          </div>
+
+          <div class="field-wrap">
+            <span class="field-icon muted">
+              <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+            </span>
+            <div class="autocomplete-wrap" id="dest-wrap">
+              <input type="text" id="dest-input" class="field-input" placeholder="To — address or place name" autocomplete="off" />
+              <ul class="autocomplete-list" id="dest-suggestions"></ul>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-wrap half">
+              <span class="field-icon muted">
+                <svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM18 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zM8 18v-4.5H6V18H4V5h8v13H8z"/></svg>
+              </span>
+              <input type="number" id="litres-input" class="field-input" placeholder="Litres" value="40" min="1" max="200" step="1" />
+            </div>
+            <div class="field-wrap half">
+              <span class="field-icon muted">
+                <svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77z"/></svg>
+              </span>
+              <select id="fuel-type" class="field-input field-select">
+                <option value="E10">E10</option>
+                <option value="U91">U91</option>
+                <option value="P95">Premium 95</option>
+                <option value="P98">Premium 98</option>
+                <option value="DL">Diesel</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="finder-error" class="error-box hidden"></div>
+
+        <button id="find-btn" class="btn-primary" onclick="runOptimise()">
+          <span id="find-btn-text">Find Best Fuel</span>
+          <span id="find-btn-spinner" class="btn-spinner hidden"></span>
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div id="results-section" class="hidden">
+
+        <!-- Baseline banner -->
+        <div class="baseline-banner" id="baseline-banner">
+          <svg viewBox="0 0 24 24" class="route-icon"><path d="M21 3L3 10.53v.98l6.84 2.65L12.48 21h.98L21 3z"/></svg>
+          <div>
+            <div id="baseline-text" class="baseline-text"></div>
+            <div id="baseline-sub" class="baseline-sub"></div>
+          </div>
+        </div>
+
+        <h2 class="section-title">Your Options</h2>
+        <p class="section-sub">Click a card to save your preference and open navigation.</p>
+
+        <div class="cards-grid" id="result-cards"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── PAGE: MAP ────────────────────────── -->
+  <div id="page-map" class="page">
+    <!-- Map controls overlay -->
+    <div class="map-controls">
+      <div class="map-ctrl-row">
+        <label class="ctrl-label">Fuel</label>
+        <select id="map-fuel-type" class="map-select" onchange="mapFuelChanged()">
+          <option value="E10">E10</option>
+          <option value="U91">U91</option>
+          <option value="P95">Premium 95</option>
+          <option value="P98">Premium 98</option>
+          <option value="DL">Diesel</option>
+        </select>
+        <span id="map-station-count" class="station-count"></span>
+        <button class="map-refresh-btn" onclick="fetchMapStations()" title="Refresh">
+          <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        </button>
+      </div>
+      <div class="map-ctrl-row">
+        <label class="ctrl-label">Radius</label>
+        <input type="range" id="map-radius" min="1" max="20" value="5" step="1" oninput="mapRadiusInput(this.value)" onchange="fetchMapStations()" />
+        <span id="map-radius-label" class="radius-label">5 km</span>
+      </div>
+      <div id="map-error" class="map-error-text hidden"></div>
+    </div>
+
+    <!-- Map container -->
+    <div id="map-container"></div>
+
+    <!-- Legend -->
+    <div class="map-legend">
+      <span class="legend-dot green"></span><span>Cheap</span>
+      <span class="legend-dot red"></span><span>Pricey</span>
+    </div>
+
+    <!-- Map loading -->
+    <div id="map-loading" class="map-loading hidden">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- ─── PAGE: SETTINGS ───────────────────── -->
+  <div id="page-settings" class="page">
+    <div class="page-inner">
+
+      <h1 class="settings-title">Settings</h1>
+
+      <!-- Tolls -->
+      <div class="card settings-card">
+        <div class="settings-card-info">
+          <strong>Allow Tolls</strong>
+          <span>Use toll roads on your route</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="tolls-toggle" onchange="saveTolls()" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <!-- Fuel consumption -->
+      <div class="card settings-card-tall">
+        <div class="settings-section-header">
+          <div class="settings-icon amber">⛽</div>
+          <div>
+            <strong>Fuel Consumption</strong>
+            <span>Used to calculate detour costs</span>
+          </div>
+        </div>
+        <div class="consumption-row">
+          <div class="field-wrap flex1">
+            <input type="number" id="consumption-input" class="field-input" placeholder="e.g. 8.0" min="1" max="30" step="0.1" value="8.0" />
+            <span class="field-suffix">L/100km</span>
+          </div>
+          <button class="btn-amber" onclick="saveConsumption()">Save</button>
+        </div>
+        <div id="consumption-error" class="field-error hidden"></div>
+        <div class="chip-row" id="consumption-chips">
+          <button class="chip" data-val="4.5" onclick="setConsumptionChip(this)">Hybrid · 4.5</button>
+          <button class="chip" data-val="7.0" onclick="setConsumptionChip(this)">Small · 7.0</button>
+          <button class="chip active" data-val="8.0" onclick="setConsumptionChip(this)">Average · 8.0</button>
+          <button class="chip" data-val="11.0" onclick="setConsumptionChip(this)">SUV · 11.0</button>
+          <button class="chip" data-val="15.0" onclick="setConsumptionChip(this)">4WD · 15.0</button>
+        </div>
+      </div>
+
+      <!-- Learned preferences -->
+      <div class="card settings-card-tall" id="prefs-card">
+        <strong class="prefs-title">Learned Preferences</strong>
+        <p id="prefs-desc" class="prefs-desc">Start picking recommendations on the Find Fuel tab and we'll learn your preferences.</p>
+        <div id="prefs-detail" class="hidden">
+          <div class="weight-visual">
+            <div class="wv-row">
+              <span>💰 Cost</span>
+              <div class="wv-track"><div class="wv-fill green" id="pref-cost-bar"></div></div>
+              <span class="wv-pct green" id="pref-cost-pct">50%</span>
+            </div>
+            <div class="wv-row">
+              <span>⚡ Time</span>
+              <div class="wv-track"><div class="wv-fill blue" id="pref-time-bar"></div></div>
+              <span class="wv-pct blue" id="pref-time-pct">50%</span>
+            </div>
+          </div>
+          <div class="history-chips" id="history-chips"></div>
+          <button class="btn-outline" onclick="resetPreferences()">↺ Reset Preferences</button>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="card settings-card">
+        <div class="settings-card-info">
+          <strong>About</strong>
+          <span>NSW Fuel Optimiser · built for Sydney</span>
+        </div>
+        <svg viewBox="0 0 24 24" style="width:20px;fill:var(--text-secondary)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══════════════════════════════════════════
+     NAVIGATION MODAL (replaces app bottom sheet)
+════════════════════════════════════════════ -->
+<div class="modal-backdrop hidden" id="nav-modal-backdrop" onclick="closeNavModal()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <p class="modal-to">Navigate to</p>
+    <h3 class="modal-station" id="modal-station-name"></h3>
+    <div class="modal-options">
+      <a class="modal-option" id="nav-waze" href="#" target="_blank">
+        <div class="modal-opt-icon" style="background:rgba(51,204,255,0.12)"><img src="/assets/icons/waze.png" alt="Waze" class="nav-app-icon" /></div>
+        <span>Waze</span>
+        <svg viewBox="0 0 24 24" class="modal-chevron"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+      <a class="modal-option" id="nav-google" href="#" target="_blank">
+        <div class="modal-opt-icon" style="background:rgba(66,133,244,0.12)"><img src="/assets/icons/google-maps.png" alt="Google Maps" class="nav-app-icon" /></div>
+        <span>Google Maps</span>
+        <svg viewBox="0 0 24 24" class="modal-chevron"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+      <a class="modal-option" id="nav-apple" href="#" target="_blank">
+        <div class="modal-opt-icon" style="background:rgba(0,122,255,0.12)"><img src="/assets/icons/apple-maps.png" alt="Apple Maps" class="nav-app-icon" /></div>
+        <span>Apple Maps</span>
+        <svg viewBox="0 0 24 24" class="modal-chevron"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+      </a>
+    </div>
+    <button class="modal-cancel" onclick="closeNavModal()">Cancel</button>
+  </div>
+</div>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>
