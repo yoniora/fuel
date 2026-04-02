@@ -15,8 +15,8 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <!-- Google Maps JS -->
   <script>
-    // Loaded dynamically in app.js after DOM ready
-    window.GOOGLE_MAPS_API_KEY = "AIzaSyCtYBy64xlAcvreLQivPsoaiJCh9o2BzCk";
+    window.GOOGLE_MAPS_API_KEY = "";
+    fetch("/config").then(r => r.json()).then(c => { window.GOOGLE_MAPS_API_KEY = c.googleMapsApiKey; });
   </script>
 </head>
 <body>

@@ -59,6 +59,12 @@ app.add_middleware(
 # index.html at /, everything else (js, css, icons/) via /assets/...
 _WEB_DIR = os.path.join(os.path.dirname(__file__), "web")
 
+@app.get("/config")
+def client_config():
+    """Serves non-secret config to the frontend (Maps JS key must be in the browser)."""
+    return {"googleMapsApiKey": _google_api_key()}
+
+
 @app.get("/")
 def serve_index():
     return FileResponse(os.path.join(_WEB_DIR, "index.html"))
@@ -79,7 +85,11 @@ def debug_runtime():
 # =========================================================
 # Google Routes (you already have this)
 GOOGLE_ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
-GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_API_KEY")
+def _google_api_key() -> str:
+    key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if not key:
+        raise HTTPException(status_code=500, detail="Missing GOOGLE_API_KEY env var on server.")
+    return key
 
 # NSW FuelCheck / FuelPriceCheck
 # IMPORTANT: set these in .env
@@ -199,8 +209,7 @@ def _simplify_route(route: Dict[str, Any]) -> Dict[str, Any]:
 
 
 async def _compute_route(origin: str, destination: str, *, avoid_tolls: bool) -> Dict[str, Any]:
-    if not GOOGLE_MAPS_API_KEY:
-        raise HTTPException(status_code=500, detail="Missing GOOGLE_API_KEY env var on server.")
+    api_key = _google_api_key()
 
     payload = {
         "origin": _location_obj(origin),
@@ -221,7 +230,7 @@ async def _compute_route(origin: str, destination: str, *, avoid_tolls: bool) ->
 
     headers = {
         "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+        "X-Goog-Api-Key": api_key,
         "X-Goog-FieldMask": _field_mask(),
     }
 
@@ -708,12 +717,10 @@ async def autocomplete(q: str, lat: float = -33.8688, lng: float = 151.2093):
     """
     if not q or len(q.strip()) < 2:
         return []
-    if not GOOGLE_MAPS_API_KEY:
-        raise HTTPException(status_code=500, detail="Missing GOOGLE_API_KEY env var")
 
     params = {
         "input": q.strip(),
-        "key": GOOGLE_MAPS_API_KEY,
+        "key": _google_api_key(),
         "components": "country:au",
         "types": "geocode",          # addresses + suburbs + regions
         "location": f"{lat},{lng}",
