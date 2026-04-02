@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>NSW Fuel Optimiser</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=2" />
+  <link rel="stylesheet" href="/assets/styles.css?v=3" />
   <!-- Google Fonts: DM Sans (matches Flutter app) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,7 +16,9 @@
   <!-- Google Maps JS -->
   <script>
     window.GOOGLE_MAPS_API_KEY = "";
-    fetch("/config").then(r => r.json()).then(c => { window.GOOGLE_MAPS_API_KEY = c.googleMapsApiKey; });
+    window._configReady = fetch("/config")
+      .then(r => r.json())
+      .then(c => { window.GOOGLE_MAPS_API_KEY = c.googleMapsApiKey; });
   </script>
 </head>
 <body>
@@ -306,6 +308,6 @@
   </div>
 </div>
 
-<script src="/assets/app.js?v=2"></script>
+<script src="/assets/app.js?v=3"></script>
 </body>
 </html>

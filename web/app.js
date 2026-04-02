@@ -700,10 +700,13 @@ function showToast(msg) {
 // ─────────────────────────────────────────────────────────
 // GOOGLE MAPS SCRIPT LOADER
 // ─────────────────────────────────────────────────────────
-function loadGoogleMaps() {
-  return new Promise((resolve) => {
-    if (window.google && window.google.maps) { resolve(); return; }
+async function loadGoogleMaps() {
+  // Wait for /config fetch to complete so the API key is available
+  if (window._configReady) await window._configReady;
 
+  if (window.google && window.google.maps) return;
+
+  await new Promise((resolve) => {
     window._googleMapsReady = resolve;
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${getGoogleApiKey()}&libraries=places&callback=_googleMapsReady`;
