@@ -1,1 +1,5 @@
 .env
+.nsw_token_cache.json
+__pycache__/
+*.pyc
+.DS_Store
