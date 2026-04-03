@@ -729,10 +729,18 @@ _BRAND_KEY_CANONICAL: Dict[str, str] = {
 }
 
 
+_KNOWN_BRAND_LOGOS = {
+    "7eleven", "ampol", "bp", "budget", "colesexpress", "costco",
+    "independent", "liberty", "metrofuel", "mobil", "nrma",
+    "reddyexpress", "shell", "speedway", "ultrapetroleum", "united",
+}
+
 def _canonical_brand_key(brand: str) -> str:
-    """Normalise brand string and resolve to canonical logo key."""
+    """Normalise brand string and resolve to canonical logo key.
+    Falls back to 'independent' if no matching logo file exists."""
     raw = _norm_brand_key(brand)
-    return _BRAND_KEY_CANONICAL.get(raw, raw)
+    resolved = _BRAND_KEY_CANONICAL.get(raw, raw)
+    return resolved if resolved in _KNOWN_BRAND_LOGOS else "independent"
 
 
 def _extract_station_fields(p: Dict[str, Any]) -> Optional[Tuple[str, str, str, float, float, float, str, Optional[str]]]:
