@@ -94,13 +94,21 @@ let _userLat = -33.8688, _userLng = 151.2093; // Sydney CBD default; updated by 
 let _myLocationCoords = null; // set when GPS fills "My Location" into origin field
 
 function setupAutocomplete(inputId, listId) {
-  const input = document.getElementById(inputId);
-  const list  = document.getElementById(listId);
+  const input     = document.getElementById(inputId);
+  const list      = document.getElementById(listId);
+  const clearBtn  = inputId === "origin-input" ? document.getElementById("origin-clear") : null;
+
+  function updateClearBtn() {
+    if (!clearBtn) return;
+    if (input.value.length > 0) clearBtn.classList.remove("hidden");
+    else clearBtn.classList.add("hidden");
+  }
 
   input.addEventListener("input", () => {
     if (inputId === "origin-input" && input.value.trim() !== "My Location") {
       _myLocationCoords = null;
     }
+    updateClearBtn();
     const val = input.value.trim();
 
     // Skip if looks like lat,lng
@@ -111,9 +119,25 @@ function setupAutocomplete(inputId, listId) {
     _autocompleteTimers[inputId] = setTimeout(() => fetchSuggestions(val, list, input), 350);
   });
 
+  input.addEventListener("focus", () => updateClearBtn());
+
   input.addEventListener("blur", () => {
-    setTimeout(() => list.classList.remove("open"), 180);
+    setTimeout(() => {
+      list.classList.remove("open");
+      if (clearBtn) clearBtn.classList.add("hidden");
+    }, 180);
   });
+
+  if (clearBtn) {
+    clearBtn.addEventListener("mousedown", (e) => {
+      e.preventDefault(); // prevent input blur before click fires
+      input.value = "";
+      _myLocationCoords = null;
+      clearBtn.classList.add("hidden");
+      list.classList.remove("open");
+      input.focus();
+    });
+  }
 }
 
 async function fetchSuggestions(query, listEl, inputEl) {
@@ -471,6 +495,14 @@ function renderMapMarkers(stations) {
   const minP   = Math.min(...prices);
   const maxP   = Math.max(...prices);
 
+  // Find the cheapest station — on tie, pick the one closest to the user
+  const cheapestStations = stations.filter(s => s.price === minP);
+  const bestCheapest = cheapestStations.reduce((a, b) => {
+    const da = Math.hypot(a.lat - _userLat, a.lng - _userLng);
+    const db = Math.hypot(b.lat - _userLat, b.lng - _userLng);
+    return da <= db ? a : b;
+  });
+
   stations.forEach(station => {
     const t = maxP > minP ? (station.price - minP) / (maxP - minP) : 0.5;
     const borderColor = interpolateColor(t);
@@ -483,11 +515,13 @@ function renderMapMarkers(stations) {
              data-fallback-color="${brandColor}" data-fallback-initial="${initial}"
              onerror="onBrandLogoError(this)" alt="${initial}">`
       : initial;
+    const isBest = station === bestCheapest;
 
     // Build custom HTML marker
     const div = document.createElement("div");
     div.className = "map-marker";
     div.innerHTML = `
+      ${isBest ? '<div class="map-marker-diamond-ring"></div>' : ''}
       <div class="map-marker-bubble" style="border-color:${borderColor}">
         <div class="map-marker-brand" style="background:${brandBg}">${brandInner}</div>
         <div class="map-marker-price">$${station.price.toFixed(3)}</div>

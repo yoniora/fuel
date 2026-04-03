@@ -318,7 +318,29 @@ html, body {
 /* ═══════════════════════════════════════════════
    AUTOCOMPLETE
 ════════════════════════════════════════════════ */
-.autocomplete-wrap { flex: 1; position: relative; }
+.autocomplete-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+
+.clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--text-secondary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  z-index: 1;
+}
+
+.clear-btn svg { width: 12px; height: 12px; fill: #fff; }
+.clear-btn:hover { background: var(--text-primary); }
 
 .autocomplete-list {
   position: absolute;
@@ -725,6 +747,27 @@ html, body {
 }
 
 .map-marker-bubble:hover { transform: scale(1.05); }
+
+/* Diamond ring around cheapest station */
+.map-marker-diamond-ring {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: calc(100% + 16px);
+  height: calc(100% + 16px);
+  border: 2.5px solid #B8860B;
+  border-radius: 6px;
+  background: transparent;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(184,134,11,0.5), inset 0 0 4px rgba(184,134,11,0.15);
+  animation: diamond-pulse 2s ease-in-out infinite;
+}
+
+@keyframes diamond-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(184,134,11,0.5), inset 0 0 4px rgba(184,134,11,0.15); }
+  50%       { box-shadow: 0 0 14px rgba(184,134,11,0.85), inset 0 0 6px rgba(184,134,11,0.3); }
+}
 
 .map-marker-brand {
   width: 36px;
