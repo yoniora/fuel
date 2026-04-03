@@ -343,7 +343,7 @@ function makeResultCard({ type, label, color, station, recommended, effectiveTyp
 
   const rawName = station.name || "";
   const displayName = rawName === rawName.toUpperCase() && rawName.length > 1
-    ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase()
+    ? rawName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
     : rawName;
   const stationLine = displayName;
 
