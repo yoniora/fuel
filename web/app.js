@@ -421,10 +421,11 @@ function closeNavModal() {
 // ─────────────────────────────────────────────────────────
 // MAP PAGE
 // ─────────────────────────────────────────────────────────
-let _map          = null;
-let _mapMarkers   = [];
-let _mapStations  = [];
+let _map           = null;
+let _mapMarkers    = [];
+let _mapStations   = [];
 let _mapUserMarker = null;
+let _mapIdleSkip   = true;  // skip the first idle (fires on init before user moves)
 
 function initMap() {
   const defaultPos = { lat: -33.8688, lng: 151.2093 }; // Sydney CBD fallback
@@ -440,6 +441,12 @@ function initMap() {
     styles: [
       { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
     ],
+  });
+
+  // Auto-refresh stations when user pans or zooms
+  google.maps.event.addListener(_map, "idle", () => {
+    if (_mapIdleSkip) { _mapIdleSkip = false; return; }
+    fetchMapStations();
   });
 
   // Try to centre on user
