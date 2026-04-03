@@ -26,13 +26,19 @@ load_dotenv()
 
 
 async def _prewarm_caches():
-    """Fire-and-forget: warm NSW reference + prices caches at startup."""
+    """Fire-and-forget: warm NSW reference + prices caches, and VIC if configured."""
     try:
         await _refresh_reference_if_needed(force=False)
         await _refresh_prices_if_needed(force=False)
         logging.getLogger("fuel").info("NSW caches pre-warmed OK")
     except Exception as e:
-        logging.getLogger("fuel").warning("Cache pre-warm failed (non-fatal): %s", e)
+        logging.getLogger("fuel").warning("NSW cache pre-warm failed (non-fatal): %s", e)
+    if _VIC_CONSUMER_ID:
+        try:
+            await _refresh_vic_prices_if_needed(force=False)
+            logging.getLogger("fuel").info("VIC cache pre-warmed OK")
+        except Exception as e:
+            logging.getLogger("fuel").warning("VIC cache pre-warm failed (non-fatal): %s", e)
 
 
 @asynccontextmanager
@@ -105,6 +111,14 @@ NSW_LOVS_URL       = f"{NSW_BASE}/FuelCheckRefData/v2/fuel/lovs"
 _STATIONS_REF: dict[int, dict] = {}   # stationcode -> {name, brand, lat, lng, ...}
 _STATIONS_REF_AT: Optional[datetime] = None
 _STATIONS_REF_TTL = timedelta(days=7)  # LOVs change rarely; weekly is fine
+
+# --------- VIC Fair Fuel Open Data ----------
+VIC_BASE_URL = "https://api.fuel.service.vic.gov.au/open-data/v1"
+VIC_PRICES_URL = f"{VIC_BASE_URL}/fuel/prices"
+_VIC_CONSUMER_ID: str = os.getenv("VIC_CONSUMER_ID", "").strip()
+
+_VIC_PRICES_CACHE: List[Dict[str, Any]] = []   # raw station dicts from VIC API
+_VIC_PRICES_CACHE_AT: Optional[datetime] = None
 
 
 # =========================================================
@@ -555,6 +569,50 @@ async def _refresh_prices_if_needed(force: bool = False) -> None:
     _PRICES_CACHE_AT = datetime.now(timezone.utc)
 
 
+# =========================================================
+# VIC Fair Fuel Open Data helpers
+# =========================================================
+
+def _vic_headers() -> Dict[str, str]:
+    return {
+        "x-consumer-id": _VIC_CONSUMER_ID,
+        "x-transactionid": str(uuid.uuid4()),
+        "User-Agent": "FuelOptimiser/1.0",
+        "Accept": "application/json",
+    }
+
+
+async def _refresh_vic_prices_if_needed(force: bool = False) -> None:
+    """
+    Fetches all VIC fuel prices in a single call. Cached for 24h.
+    VIC API returns station metadata + prices combined in one response.
+    """
+    global _VIC_PRICES_CACHE, _VIC_PRICES_CACHE_AT
+
+    if not _VIC_CONSUMER_ID:
+        logging.getLogger("fuel").warning("VIC_CONSUMER_ID not set — skipping VIC fetch")
+        return
+
+    if not force and _VIC_PRICES_CACHE_AT and (datetime.now(timezone.utc) - _VIC_PRICES_CACHE_AT) < CACHE_TTL:
+        return
+
+    async with httpx.AsyncClient(timeout=40.0) as client:
+        r = await client.get(VIC_PRICES_URL, headers=_vic_headers())
+
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"VIC API error: {r.status_code} {r.text[:300]}")
+
+    data = r.json()
+    entries = data.get("fuelPriceDetails") or data.get("stations") or data.get("Stations") or []
+
+    if not isinstance(entries, list):
+        raise HTTPException(status_code=502, detail=f"Unexpected VIC prices payload: {type(entries)}")
+
+    _VIC_PRICES_CACHE = entries
+    _VIC_PRICES_CACHE_AT = datetime.now(timezone.utc)
+    logging.getLogger("fuel").info("VIC prices cached: %d stations", len(entries))
+
+
 def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371.0
     p1 = math.radians(lat1)
@@ -583,14 +641,39 @@ def _map_app_fuel_to_nsw(app_fuel: str) -> str:
         "P98":    "P98",   # Premium 98
         "DL":     "DL",    # Diesel
         "DIESEL": "DL",
+        "PDL":    "PDL",   # Premium Diesel
     }
     return mapping.get(f, f)
+
+
+def _map_app_fuel_to_vic(app_fuel: str) -> str:
+    """Map UI fuel type codes to VIC Fair Fuel API codes."""
+    f = app_fuel.upper().strip()
+    mapping = {
+        "U91":    "U91",
+        "P95":    "P95",
+        "P98":    "P98",
+        "DL":     "DSL",   # NSW uses DL, VIC uses DSL
+        "DIESEL": "DSL",
+        "PDL":    "PDSL",  # NSW uses PDL, VIC uses PDSL
+        "E10":    "E10",
+        "E85":    "E85",
+        "LPG":    "LPG",
+    }
+    return mapping.get(f, f)
+
+
+def _is_vic_coords(lat: float, lng: float) -> bool:
+    """Bounding box check: is this point in Victoria?"""
+    return -39.2 <= lat <= -33.98 and 140.96 <= lng <= 150.03
 
 
 # Maps normalised brand keys → canonical logo filename (without .png extension).
 # Ampol variants and Caltex all share the same logo.
 # Small/one-off stations fall back to "independent".
 _BRAND_KEY_CANONICAL: Dict[str, str] = {
+    # Metro Fuel (VIC first-word extraction gives "metro", NSW LOVs gives "metrofuel")
+    "metro":                   "metrofuel",
     # Ampol family
     "ampolbreeze":             "ampol",
     "ampolfoodary":            "ampol",
@@ -720,22 +803,33 @@ def debug_env():
     return {k: ("SET" if os.getenv(k) else "MISSING") for k in keys_to_check}
 
 
+_STATE_BIAS = {
+    "VIC": {"lat": -37.0, "lng": 144.5, "radius": "600000"},
+    "NSW": {"lat": -32.5, "lng": 147.0, "radius": "800000"},
+}
+
 @app.get("/autocomplete")
-async def autocomplete(q: str, lat: float = -33.8688, lng: float = 151.2093):
+async def autocomplete(q: str, lat: float = -33.8688, lng: float = 151.2093, state: str = ""):
     """
     Proxy for Google Places Autocomplete — avoids CORS and keeps the key server-side.
-    Mirrors what the Flutter app does via direct HTTP to Places API.
+    Optional `state` param ("NSW" or "VIC") biases results to that state.
     """
     if not q or len(q.strip()) < 2:
         return []
+
+    bias = _STATE_BIAS.get(state.upper().strip())
+    if bias:
+        bias_lat, bias_lng, bias_radius = bias["lat"], bias["lng"], bias["radius"]
+    else:
+        bias_lat, bias_lng, bias_radius = lat, lng, "50000"
 
     params = {
         "input": q.strip(),
         "key": _google_api_key(),
         "components": "country:au",
-        "types": "geocode",          # addresses + suburbs + regions
-        "location": f"{lat},{lng}",
-        "radius": "50000",           # 50 km location bias
+        "types": "geocode",
+        "location": f"{bias_lat},{bias_lng}",
+        "radius": bias_radius,
         "language": "en-AU",
     }
 
@@ -770,11 +864,59 @@ async def routes(body: RoutesRequest):
     return {"avoidTolls": body.avoidTolls, "route": _simplify_route(route_raw)}
 
 
+def _looks_like_vic(s: str) -> bool:
+    """Returns True if the address string (or lat,lng) looks like it's in Victoria."""
+    coords = re.match(r"^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$", s.strip())
+    if coords:
+        return _is_vic_coords(float(coords.group(1)), float(coords.group(2)))
+    s_up = s.upper()
+    return " VIC " in s_up or " VIC," in s_up or s_up.endswith(" VIC") or "VICTORIA" in s_up
+
+
 @app.post("/optimise")
 def optimise(body: OptimiseRequest):
     try:
         pre_loaded_data = None
-        if _PRICES_CACHE and _STATIONS_REF:
+        origin_is_vic = _looks_like_vic(body.origin)
+
+        if origin_is_vic and _VIC_PRICES_CACHE:
+            # Build pre_loaded_data from VIC cache in the format run_optimiser expects.
+            # VIC station IDs are strings, so we use sequential ints as codes.
+            vic_fuel = _map_app_fuel_to_vic(body.fuelType.upper())
+            stations_list = []
+            prices_list = []
+            for idx, entry in enumerate(_VIC_PRICES_CACHE):
+                fs = entry.get("fuelStation") or {}
+                location = fs.get("location") or {}
+                s_lat = location.get("latitude")
+                s_lng = location.get("longitude")
+                if s_lat is None or s_lng is None:
+                    continue
+                fuel_prices = entry.get("fuelPrices") or []
+                matching = next(
+                    (pr for pr in fuel_prices
+                     if (pr.get("fuelType") or "").upper() == vic_fuel and pr.get("isAvailable", True)),
+                    None
+                )
+                if not matching:
+                    continue
+                name = str(fs.get("name") or "Station")
+                brand = name.split()[0] if name else ""
+                stations_list.append({
+                    "code": str(idx),
+                    "name": name,
+                    "brand": brand,
+                    "location": {"latitude": float(s_lat), "longitude": float(s_lng)},
+                })
+                prices_list.append({
+                    "stationcode": idx,
+                    "fueltype": vic_fuel,
+                    "price": float(matching.get("price") or 0),
+                })
+            pre_loaded_data = {"stations": stations_list, "prices": prices_list}
+
+        elif _PRICES_CACHE and _STATIONS_REF:
+            # NSW path (existing)
             ft_nsw = _map_app_fuel_to_nsw(body.fuelType.upper())
             prices_list = [
                 p for p in _PRICES_CACHE
@@ -821,74 +963,136 @@ async def stations(
     fuel_type: str = "U91",
 ):
     """
-    Frontend can call this whenever:
-      - the radius slider changes, or
-      - fuel type changes
-
-    BUT:
-      - NSW prices are cached (daily)
-      - NSW station reference (LOVs: lat/lng/name/brand) is cached (weekly)
+    Returns stations near (lat, lng) within radius_km for the given fuel_type.
+    Routes to VIC or NSW API based on the coordinates.
+    Prices are cached daily; NSW station reference is cached weekly.
     """
     if radius_km <= 0 or radius_km > 50:
         raise HTTPException(status_code=400, detail="radius_km must be between 0 and 50")
 
-    # Ensure BOTH caches are loaded
-    await _refresh_reference_if_needed(force=False)
-    await _refresh_prices_if_needed(force=False)
-
     ft = fuel_type.upper().strip()
     out: List[StationOut] = []
 
-    # Process each price record
-    for p in _PRICES_CACHE:
-        if not isinstance(p, dict):
-            continue
+    if _is_vic_coords(lat, lng):
+        # ---- VIC path ----
+        await _refresh_vic_prices_if_needed(force=False)
+        vic_fuel = _map_app_fuel_to_vic(ft)
 
-        # Extract station code/ID - NSW uses "stationcode" in prices endpoint
-        station_code = p.get("stationcode") or p.get("stationCode") or p.get("code")
-        if station_code is None:
-            continue
-        
-        try:
-            station_code_int = int(station_code)
-        except Exception:
-            continue
+        for entry in _VIC_PRICES_CACHE:
+            if not isinstance(entry, dict):
+                continue
 
-        # Fuel type from NSW payload
-        p_fuel_type = (p.get("fueltype") or p.get("fuelType") or "").strip().upper()
+            fs = entry.get("fuelStation") or {}
 
-        # Map your app fuel_type to NSW codes and filter
-        if p_fuel_type and _map_app_fuel_to_nsw(ft) != p_fuel_type:
-            continue
+            location = fs.get("location") or {}
+            s_lat = location.get("latitude")
+            s_lng = location.get("longitude")
 
-        # Price extraction - NSW returns price in cents per litre
-        try:
-            raw_price = float(p.get("price") or 0)
-        except Exception:
-            continue
+            if s_lat is None or s_lng is None:
+                continue
 
-        # NSW prices are in cents, convert to dollars
-        price = raw_price / 100.0 if raw_price > 20 else raw_price
+            try:
+                s_lat = float(s_lat)
+                s_lng = float(s_lng)
+            except Exception:
+                continue
 
-        # Extract last updated timestamp
-        last_updated = str(p.get("lastupdated") or p.get("lastUpdated") or "")
+            d = _haversine_km(lat, lng, s_lat, s_lng)
+            if d > float(radius_km):
+                continue
 
-        # Join to station reference cache to get name/brand/lat/lng
-        ref = _STATIONS_REF.get(station_code_int)
-        if not ref:
-            # Station not in reference data, skip it
-            continue
+            # Find price for requested fuel type (skip unavailable)
+            fuel_prices = entry.get("fuelPrices") or []
+            matching_price = None
+            for pr in fuel_prices:
+                if (pr.get("fuelType") or "").upper() == vic_fuel and pr.get("isAvailable", True):
+                    matching_price = pr
+                    break
 
-        name = ref.get("name") or f"Station {station_code_int}"
-        brand = ref.get("brand") or "Unknown"
-        s_lat = float(ref["lat"])
-        s_lng = float(ref["lng"])
+            if not matching_price:
+                continue
 
-        # Calculate distance and filter by radius
-        d = _haversine_km(lat, lng, s_lat, s_lng)
-        if d <= float(radius_km):
-            out.append(
-                StationOut(
+            try:
+                raw_price = float(matching_price.get("price") or 0)
+            except Exception:
+                continue
+
+            # VIC prices are in cents per litre
+            price = raw_price / 100.0 if raw_price > 20 else raw_price
+
+            name = str(fs.get("name") or "Station")
+            site_id = str(fs.get("id") or f"{s_lat:.5f}:{s_lng:.5f}")
+            address_str = str(fs.get("address") or "") or None
+            last_updated = str(matching_price.get("updatedAt") or "") or None
+
+            # Best-effort brand: first word of station name (e.g. "United Wodonga" → "United")
+            brand = name.split()[0] if name else ""
+
+            out.append(StationOut(
+                station_code=f"VIC-{site_id}",
+                name=name,
+                brand=brand,
+                brand_key=_canonical_brand_key(brand),
+                fuel_type=ft,
+                price=round(price, 3),
+                lat=s_lat,
+                lng=s_lng,
+                distance_km=round(d, 2),
+                address=address_str,
+                last_updated=last_updated,
+            ))
+
+    else:
+        # ---- NSW path ----
+        await _refresh_reference_if_needed(force=False)
+        await _refresh_prices_if_needed(force=False)
+
+        for p in _PRICES_CACHE:
+            if not isinstance(p, dict):
+                continue
+
+            # Extract station code/ID - NSW uses "stationcode" in prices endpoint
+            station_code = p.get("stationcode") or p.get("stationCode") or p.get("code")
+            if station_code is None:
+                continue
+
+            try:
+                station_code_int = int(station_code)
+            except Exception:
+                continue
+
+            # Fuel type from NSW payload
+            p_fuel_type = (p.get("fueltype") or p.get("fuelType") or "").strip().upper()
+
+            # Map your app fuel_type to NSW codes and filter
+            if p_fuel_type and _map_app_fuel_to_nsw(ft) != p_fuel_type:
+                continue
+
+            # Price extraction - NSW returns price in cents per litre
+            try:
+                raw_price = float(p.get("price") or 0)
+            except Exception:
+                continue
+
+            # NSW prices are in cents, convert to dollars
+            price = raw_price / 100.0 if raw_price > 20 else raw_price
+
+            # Extract last updated timestamp
+            last_updated = str(p.get("lastupdated") or p.get("lastUpdated") or "") or None
+
+            # Join to station reference cache to get name/brand/lat/lng
+            ref = _STATIONS_REF.get(station_code_int)
+            if not ref:
+                continue
+
+            name = ref.get("name") or f"Station {station_code_int}"
+            brand = ref.get("brand") or "Unknown"
+            s_lat = float(ref["lat"])
+            s_lng = float(ref["lng"])
+
+            d = _haversine_km(lat, lng, s_lat, s_lng)
+            if d <= float(radius_km):
+                out.append(StationOut(
                     station_code=str(station_code_int),
                     name=str(name),
                     brand=str(brand),
@@ -899,13 +1103,37 @@ async def stations(
                     lng=s_lng,
                     distance_km=round(d, 2),
                     address=ref.get("address") or None,
-                    last_updated=last_updated if last_updated else None,
-                )
-            )
+                    last_updated=last_updated,
+                ))
 
     # Sort by price first, then distance
     out.sort(key=lambda s: (s.price, s.distance_km))
     return out
+
+@app.get("/debug/vic-raw")
+async def debug_vic_raw():
+    """Returns the raw VIC API response so we can inspect its structure."""
+    if not _VIC_CONSUMER_ID:
+        return {"error": "VIC_CONSUMER_ID not set"}
+    async with httpx.AsyncClient(timeout=40.0) as client:
+        r = await client.get(VIC_PRICES_URL, headers=_vic_headers())
+    try:
+        data = r.json()
+    except Exception:
+        return {"status_code": r.status_code, "raw_text": r.text[:500]}
+    # Return top-level keys + first item of any list value to reveal structure
+    preview = {"status_code": r.status_code, "top_level_keys": list(data.keys()) if isinstance(data, dict) else f"type={type(data).__name__}"}
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if isinstance(v, list) and v:
+                preview[f"{k}_count"] = len(v)
+                preview[f"{k}_first_item"] = v[0]
+                break
+    elif isinstance(data, list) and data:
+        preview["list_count"] = len(data)
+        preview["first_item"] = data[0]
+    return preview
+
 
 @app.get("/debug/caches")
 async def debug_caches():
@@ -980,14 +1208,18 @@ async def debug_match_test(fuel_type: str = "U91"):
 
 @app.post("/stations/refresh")
 async def refresh_stations():
-    await _refresh_reference_if_needed(force=True)   # <-- add
-    await _refresh_prices_if_needed(force=True)      # <-- keep
+    await _refresh_reference_if_needed(force=True)
+    await _refresh_prices_if_needed(force=True)
+    if _VIC_CONSUMER_ID:
+        await _refresh_vic_prices_if_needed(force=True)
     return {
         "ok": True,
-        "prices_cached_count": len(_PRICES_CACHE),
-        "ref_cached_count": len(_STATIONS_REF),
-        "prices_cached_at": _PRICES_CACHE_AT.isoformat() if _PRICES_CACHE_AT else None,
-        "ref_cached_at": _STATIONS_REF_AT.isoformat() if _STATIONS_REF_AT else None,
+        "nsw_prices_count": len(_PRICES_CACHE),
+        "nsw_ref_count": len(_STATIONS_REF),
+        "nsw_prices_at": _PRICES_CACHE_AT.isoformat() if _PRICES_CACHE_AT else None,
+        "nsw_ref_at": _STATIONS_REF_AT.isoformat() if _STATIONS_REF_AT else None,
+        "vic_stations_count": len(_VIC_PRICES_CACHE),
+        "vic_prices_at": _VIC_PRICES_CACHE_AT.isoformat() if _VIC_PRICES_CACHE_AT else None,
     }
 
 @app.get("/stations/debug/sample")

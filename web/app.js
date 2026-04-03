@@ -117,7 +117,7 @@ function setupAutocomplete(inputId, listId) {
     if (val.length < 3) { list.classList.remove("open"); return; }
 
     clearTimeout(_autocompleteTimers[inputId]);
-    _autocompleteTimers[inputId] = setTimeout(() => fetchSuggestions(val, list, input), 350);
+    _autocompleteTimers[inputId] = setTimeout(() => fetchSuggestions(val, list, input, inputId), 350);
   });
 
   input.addEventListener("focus", () => updateClearBtn());
@@ -141,9 +141,27 @@ function setupAutocomplete(inputId, listId) {
   }
 }
 
-async function fetchSuggestions(query, listEl, inputEl) {
+function _detectOriginState() {
+  // GPS "My Location" coords take priority
+  if (_myLocationCoords) {
+    const [lat, lng] = _myLocationCoords.split(",").map(Number);
+    if (lat >= -39.2 && lat <= -33.98 && lng >= 140.96 && lng <= 150.03) return "VIC";
+    return "NSW";
+  }
+  // Fall back to origin text
+  const originVal = (document.getElementById("origin-input")?.value || "").toUpperCase();
+  if (originVal.includes(" VIC") || originVal.includes("VICTORIA")) return "VIC";
+  if (originVal.includes(" NSW") || originVal.includes("NEW SOUTH WALES")) return "NSW";
+  return null;
+}
+
+async function fetchSuggestions(query, listEl, inputEl, inputId) {
   try {
     const params = new URLSearchParams({ q: query, lat: _userLat, lng: _userLng });
+    if (inputId === "dest-input") {
+      const state = _detectOriginState();
+      if (state) params.append("state", state);
+    }
     const res = await fetch(`${API_BASE}/autocomplete?${params}`);
     if (!res.ok) return;
     const predictions = await res.json();
