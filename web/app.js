@@ -96,7 +96,8 @@ let _myLocationCoords = null; // set when GPS fills "My Location" into origin fi
 function setupAutocomplete(inputId, listId) {
   const input     = document.getElementById(inputId);
   const list      = document.getElementById(listId);
-  const clearBtn  = inputId === "origin-input" ? document.getElementById("origin-clear") : null;
+  const clearBtnId = inputId === "origin-input" ? "origin-clear" : inputId === "dest-input" ? "dest-clear" : null;
+  const clearBtn   = clearBtnId ? document.getElementById(clearBtnId) : null;
 
   function updateClearBtn() {
     if (!clearBtn) return;
@@ -132,7 +133,7 @@ function setupAutocomplete(inputId, listId) {
     clearBtn.addEventListener("mousedown", (e) => {
       e.preventDefault(); // prevent input blur before click fires
       input.value = "";
-      _myLocationCoords = null;
+      if (inputId === "origin-input") _myLocationCoords = null;
       clearBtn.classList.add("hidden");
       list.classList.remove("open");
       input.focus();

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>NSW Fuel Optimiser</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=5" />
+  <link rel="stylesheet" href="/assets/styles.css?v=6" />
   <!-- Google Fonts: DM Sans (matches Flutter app) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -106,6 +106,9 @@
             </span>
             <div class="autocomplete-wrap" id="dest-wrap">
               <input type="text" id="dest-input" class="field-input" placeholder="To — address or place name" autocomplete="off" />
+              <button class="clear-btn hidden" id="dest-clear" tabindex="-1" aria-label="Clear">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
               <ul class="autocomplete-list" id="dest-suggestions"></ul>
             </div>
           </div>
@@ -311,6 +314,6 @@
   </div>
 </div>
 
-<script src="/assets/app.js?v=5"></script>
+<script src="/assets/app.js?v=6"></script>
 </body>
 </html>
