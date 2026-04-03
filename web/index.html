@@ -7,8 +7,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>NSW Fuel Optimiser</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=11" />
+  <title>Nearby Fuel</title>
+  <link rel="stylesheet" href="/assets/styles.css?v=12" />
   <!-- Google Fonts: DM Sans (matches Flutter app) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <span class="logo-icon">⛽</span>
-    <span class="logo-text">NSW Fuel</span>
+    <span class="logo-text">Nearby Fuel</span>
   </div>
   <ul class="nav-links">
     <li><a href="#" class="nav-link active" data-page="finder" onclick="showPage('finder',this)">
@@ -76,7 +76,7 @@
         <div class="header-icon">⛽</div>
         <div>
           <h1>Find Fuel</h1>
-          <p class="header-sub">NSW optimised routes</p>
+          <p class="header-sub">Optimised routes</p>
         </div>
       </header>
 
@@ -277,10 +277,15 @@
       <div class="card settings-card">
         <div class="settings-card-info">
           <strong>About</strong>
-          <span>NSW Fuel Optimiser · built for Sydney</span>
+          <span>Nearby Fuel · NSW, VIC &amp; TAS</span>
         </div>
         <svg viewBox="0 0 24 24" style="width:20px;fill:var(--text-secondary)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
       </div>
+
+      <!-- Price update disclaimer -->
+      <p style="font-size:0.75rem;color:var(--text-secondary);text-align:center;padding:0 8px 16px;">
+        NSW &amp; TAS fuel prices update in real time. VIC fuel prices are updated once daily.
+      </p>
 
     </div>
   </div>
@@ -316,6 +321,6 @@
   </div>
 </div>
 
-<script src="/assets/app.js?v=11"></script>
+<script src="/assets/app.js?v=12"></script>
 </body>
 </html>
