@@ -292,10 +292,24 @@ function renderResults(data) {
   const grid = document.getElementById("result-cards");
   grid.innerHTML = "";
 
+  // Determine station identity by lat/lng (objects are always separate after JSON parse)
+  function sameStation(a, b) { return a && b && a.lat === b.lat && a.lng === b.lng; }
+  const allSame            = sameStation(data.cheapest, data.fastest) && sameStation(data.fastest, data.balanced);
+  const balancedIsCheapest = !allSame && sameStation(data.balanced, data.cheapest);
+  const balancedIsFastest  = !allSame && sameStation(data.balanced, data.fastest);
+
+  // Resolve what to actually record for each card pick (null = don't record)
+  function resolvePickType(type) {
+    if (allSame) return null;
+    if (type === "balanced" && balancedIsCheapest) return "cheapest";
+    if (type === "balanced" && balancedIsFastest)  return "fastest";
+    return type;
+  }
+
   const cards = [
-    { type: "cheapest", label: "Cheapest", emoji: "💰", color: "#00C896", station: data.cheapest },
-    { type: "fastest",  label: "Fastest",  emoji: "⚡", color: "#FFB800", station: data.fastest  },
-    { type: "balanced", label: "Balanced", emoji: "⚖️", color: "#3B82F6", station: data.balanced, recommended: true },
+    { type: "cheapest", label: "Cheapest", emoji: "💰", color: "#00C896", station: data.cheapest, effectiveType: resolvePickType("cheapest") },
+    { type: "fastest",  label: "Fastest",  emoji: "⚡", color: "#FFB800", station: data.fastest,  effectiveType: resolvePickType("fastest")  },
+    { type: "balanced", label: "Balanced", emoji: "⚖️", color: "#3B82F6", station: data.balanced, recommended: true, effectiveType: resolvePickType("balanced") },
   ];
 
   cards.forEach(c => grid.appendChild(makeResultCard(c, data.weights)));
@@ -304,7 +318,7 @@ function renderResults(data) {
   document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function makeResultCard({ type, label, emoji, color, station, recommended }, weights) {
+function makeResultCard({ type, label, emoji, color, station, recommended, effectiveType }, weights) {
   const card = document.createElement("div");
   card.className = "rec-card" + (recommended ? " recommended" : "");
   card.style.setProperty("--accent", color);
@@ -344,17 +358,17 @@ function makeResultCard({ type, label, emoji, color, station, recommended }, wei
       </div>
     </div>
     <div class="picked-confirm hidden" id="confirm-${type}" style="background:${color}1a;color:${color}">
-      ✓ Preference saved! Opening navigation…
+      ${effectiveType !== null ? "✓ Preference saved! Opening navigation…" : "Opening navigation…"}
     </div>
   `;
 
-  card.addEventListener("click", () => onCardPick(type, station, card, color));
+  card.addEventListener("click", () => onCardPick(type, effectiveType, station, card, color));
   return card;
 }
 
-async function onCardPick(type, station, cardEl, color) {
-  // Record preference
-  Settings.recordPick(type);
+async function onCardPick(type, effectiveType, station, cardEl, color) {
+  // Record preference only when the pick is meaningful
+  if (effectiveType !== null) Settings.recordPick(effectiveType);
   updateWeightBadge();
   renderSettingsPrefs();
 
