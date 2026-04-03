@@ -73,7 +73,10 @@ def client_config():
 
 @app.get("/")
 def serve_index():
-    return FileResponse(os.path.join(_WEB_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(_WEB_DIR, "index.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
 
 app.mount("/assets", StaticFiles(directory=_WEB_DIR), name="static")
 
