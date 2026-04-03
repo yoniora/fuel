@@ -362,11 +362,11 @@ function makeResultCard({ type, label, color, station, recommended, effectiveTyp
     <div class="rec-divider"></div>
     <div class="rec-stats">
       <div class="stat-chip" style="background:rgba(0,200,150,0.06)">
-        <span class="stat-chip-label">Total cost</span>
+        <span class="stat-chip-label"><strong>Total cost</strong></span>
         <span class="stat-chip-value">$${station.moneyCost.toFixed(2)}</span>
       </div>
       <div class="stat-chip" style="background:rgba(255,184,0,0.06)">
-        <span class="stat-chip-label">Detour</span>
+        <span class="stat-chip-label"><strong>Detour</strong></span>
         <span class="stat-chip-value">${station.detourMin.toFixed(0)} min</span>
       </div>
       <div class="stat-chip" style="background:rgba(59,130,246,0.06)">
