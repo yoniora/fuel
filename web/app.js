@@ -517,17 +517,17 @@ function renderMapMarkers(stations) {
              onerror="onBrandLogoError(this)" alt="${initial}">`
       : initial;
     const isBest = station === bestCheapest;
+    const markerBorder = isBest ? "#1A6FE8" : borderColor;
 
     // Build custom HTML marker
     const div = document.createElement("div");
     div.className = "map-marker";
     div.innerHTML = `
-      ${isBest ? '<div class="map-marker-diamond-ring"></div>' : ''}
-      <div class="map-marker-bubble" style="border-color:${borderColor}">
+      <div class="map-marker-bubble" style="border-color:${markerBorder}${isBest ? ";border-width:3px" : ""}">
         <div class="map-marker-brand" style="background:${brandBg}">${brandInner}</div>
         <div class="map-marker-price">$${station.price.toFixed(3)}</div>
       </div>
-      <div class="map-marker-tail" style="border-top-color:${borderColor}"></div>
+      <div class="map-marker-tail" style="border-top-color:${markerBorder}"></div>
     `;
 
     const overlay = new google.maps.OverlayView();
