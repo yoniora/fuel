@@ -325,18 +325,18 @@ function renderResults(data) {
   }
 
   const cards = [
-    { type: "cheapest", label: "Cheapest", emoji: "💰", color: "#00C896", station: data.cheapest, effectiveType: resolvePickType("cheapest") },
-    { type: "fastest",  label: "Fastest",  emoji: "⚡", color: "#FFB800", station: data.fastest,  effectiveType: resolvePickType("fastest")  },
-    { type: "balanced", label: "Balanced", emoji: "⚖️", color: "#3B82F6", station: data.balanced, recommended: true, effectiveType: resolvePickType("balanced") },
+    { type: "balanced", label: "Balanced", color: "#3B82F6", station: data.balanced, recommended: true, effectiveType: resolvePickType("balanced") },
+    { type: "cheapest", label: "Cheapest", color: "#00C896", station: data.cheapest, effectiveType: resolvePickType("cheapest") },
+    { type: "fastest",  label: "Fastest",  color: "#FFB800", station: data.fastest,  effectiveType: resolvePickType("fastest")  },
   ];
 
-  cards.forEach(c => grid.appendChild(makeResultCard(c, data.weights)));
+  cards.forEach(c => grid.appendChild(makeResultCard(c)));
 
   document.getElementById("results-section").classList.remove("hidden");
   document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function makeResultCard({ type, label, emoji, color, station, recommended, effectiveType }, weights) {
+function makeResultCard({ type, label, color, station, recommended, effectiveType }) {
   const card = document.createElement("div");
   card.className = "rec-card" + (recommended ? " recommended" : "");
   card.style.setProperty("--accent", color);
@@ -347,17 +347,16 @@ function makeResultCard({ type, label, emoji, color, station, recommended, effec
 
   card.innerHTML = `
     <div class="rec-card-header">
-      <div class="rec-emoji-box" style="background:${color}1a">${emoji}</div>
-      <div class="rec-title-group">
-        <div class="rec-title-row">
-          <span class="rec-label">${label}</span>
-          ${recommended ? `<span class="rec-badge" style="background:${color}">PICK</span>` : ""}
-        </div>
-        <div class="rec-station">${stationLine}</div>
-      </div>
       <div class="rec-price-group">
         <div class="rec-price" style="color:${color}">$${station.price.toFixed(3)}</div>
         <div class="rec-price-unit">/litre</div>
+      </div>
+      <div class="rec-title-group">
+        <div class="rec-title-row">
+          ${recommended ? `<span class="rec-badge" style="background:${color}">PICK</span>` : ""}
+          <span class="rec-label">${label}</span>
+        </div>
+        <div class="rec-station">${stationLine}</div>
       </div>
     </div>
     <div class="rec-divider"></div>

@@ -523,11 +523,12 @@ html, body {
   flex-shrink: 0;
 }
 
-.rec-title-group { flex: 1; min-width: 0; }
+.rec-title-group { flex: 1; min-width: 0; text-align: right; }
 
 .rec-title-row {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   margin-bottom: 2px;
 }
