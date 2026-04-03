@@ -341,9 +341,11 @@ function makeResultCard({ type, label, color, station, recommended, effectiveTyp
   card.className = "rec-card" + (recommended ? " recommended" : "");
   card.style.setProperty("--accent", color);
 
-  const stationLine = station.brand
-    ? `${station.brand} · ${station.name}`
-    : station.name;
+  const rawName = station.name || "";
+  const displayName = rawName === rawName.toUpperCase() && rawName.length > 1
+    ? rawName.charAt(0).toUpperCase() + rawName.slice(1).toLowerCase()
+    : rawName;
+  const stationLine = displayName;
 
   card.innerHTML = `
     <div class="rec-card-header">
