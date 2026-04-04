@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F2EDE3" />
+  <title>Yoni · Projects</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --surface:        #F2EDE3;
+      --card:           #FAF7F0;
+      --text-primary:   #2D2015;
+      --text-secondary: #7D6B58;
+      --border:         #D8CEBD;
+      --green:          #6B8F5E;
+      --amber:          #A67C52;
+      --shadow-sm:      0 2px 8px rgba(80,50,20,0.07);
+      --shadow-md:      0 8px 32px rgba(80,50,20,0.13);
+    }
+
+    html, body {
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      background: var(--surface);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .page-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      padding: 28px 28px 24px;
+      width: 100%;
+      max-width: 340px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(80,50,20,0.18);
+    }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--green), #8aad7c);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .card-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 2px;
+    }
+
+    .card-footer svg {
+      width: 16px;
+      height: 16px;
+      fill: var(--green);
+    }
+
+    .footer {
+      margin-top: 48px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+
+  <p class="page-title">yoni.ink</p>
+
+  <div class="cards">
+    <a class="card" href="https://fuel.yoni.ink">
+      <div class="card-icon">⛽</div>
+      <div class="card-body">
+        <div class="card-title">Nearby Fuel</div>
+        <div class="card-desc">Find the cheapest, fastest, and most balanced fuel stop near you — across NSW, VIC &amp; TAS.</div>
+      </div>
+      <div class="card-footer">
+        Open app
+        <svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
+      </div>
+    </a>
+  </div>
+
+  <p class="footer">© 2026 Yoni</p>
+
+</body>
+</html>

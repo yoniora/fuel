@@ -13,7 +13,7 @@ import httpx
 import uvicorn
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -72,7 +72,14 @@ def client_config():
 
 
 @app.get("/")
-def serve_index():
+def serve_index(request: Request):
+    host = request.headers.get("host", "")
+    # yoni.ink (root domain) → landing page; fuel.yoni.ink (or localhost) → app
+    if host.startswith("yoni.ink"):
+        return FileResponse(
+            os.path.join(_WEB_DIR, "landing.html"),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return FileResponse(
         os.path.join(_WEB_DIR, "index.html"),
         headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
