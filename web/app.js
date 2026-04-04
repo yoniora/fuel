@@ -243,8 +243,12 @@ async function runOptimise() {
   if (!origin || !dest) { showFinderError("Please enter origin and destination."); return; }
   if (!litres || litres <= 0) { showFinderError("Enter a valid litres amount."); return; }
 
+  _lastOptimiseOrigin = origin;
+  _lastOptimiseDest   = dest;
+
   setFindLoading(true);
   document.getElementById("results-section").classList.add("hidden");
+  document.getElementById("finder-map-section").classList.add("hidden");
 
   try {
     const res = await fetch(`${API_BASE}/optimise`, {
@@ -334,6 +338,9 @@ function renderResults(data) {
 
   document.getElementById("results-section").classList.remove("hidden");
   document.getElementById("results-section").scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Draw route map below the cards (async — doesn't block card display)
+  renderFinderMap(data);
 }
 
 function makeResultCard({ type, label, color, station, recommended, effectiveType }) {
@@ -383,6 +390,223 @@ function makeResultCard({ type, label, color, station, recommended, effectiveTyp
 
   card.addEventListener("click", () => onCardPick(type, effectiveType, station, card, color));
   return card;
+}
+
+// ─────────────────────────────────────────────────────────
+// FINDER ROUTE MAP
+// ─────────────────────────────────────────────────────────
+async function renderFinderMap(data) {
+  const section = document.getElementById("finder-map-section");
+  section.classList.remove("hidden");
+
+  await loadGoogleMaps();
+
+  const container = document.getElementById("finder-map-container");
+
+  // Init or reuse map
+  if (!_finderMap) {
+    _finderMap = new google.maps.Map(container, {
+      zoom: 11,
+      center: { lat: -33.8688, lng: 151.2093 },
+      disableDefaultUI: true,
+      zoomControl: true,
+      gestureHandling: "cooperative",
+      styles: [
+        { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+      ],
+    });
+  }
+
+  // Clear previous overlays and direction renderers
+  _finderDirectionRenderers.forEach(r => r.setMap(null));
+  _finderDirectionRenderers = [];
+  _finderMapOverlays.forEach(o => o.setMap(null));
+  _finderMapOverlays = [];
+
+  const svc = new google.maps.DirectionsService();
+
+  function fetchRoute(waypoints) {
+    return new Promise((resolve, reject) => {
+      svc.route({
+        origin:      _lastOptimiseOrigin,
+        destination: _lastOptimiseDest,
+        waypoints,
+        travelMode:  google.maps.TravelMode.DRIVING,
+        avoidTolls:  Settings.avoidTolls,
+      }, (result, status) => {
+        if (status === "OK") resolve(result);
+        else reject(status);
+      });
+    });
+  }
+
+  // Deduplicate detour routes — balanced takes priority; skip cheapest/fastest if same station
+  const allDetours = [
+    { label: "balanced", color: "#3B82F6", station: data.balanced },
+    { label: "cheapest", color: "#00C896", station: data.cheapest },
+    { label: "fastest",  color: "#FFB800", station: data.fastest },
+  ];
+  const seenStations = new Set();
+  const uniqueDetours = [];
+  for (const d of allDetours) {
+    const key = `${d.station.lat},${d.station.lng}`;
+    if (!seenStations.has(key)) {
+      seenStations.add(key);
+      uniqueDetours.push(d);
+    }
+  }
+
+  // Draw baseline first (bottom layer), then unique detours on top
+  const configs = [
+    { label: "direct", color: "#3D3530", opacity: 0.40, weight: 3, waypoints: [] },
+    ...uniqueDetours.map(d => ({
+      label:     d.label,
+      color:     d.color,
+      opacity:   0.92,
+      weight:    5,
+      waypoints: [{ location: new google.maps.LatLng(d.station.lat, d.station.lng), stopover: true }],
+    })),
+  ];
+
+  const bounds = new google.maps.LatLngBounds();
+  const results = await Promise.allSettled(configs.map(c => fetchRoute(c.waypoints)));
+
+  results.forEach((outcome, i) => {
+    if (outcome.status !== "fulfilled") {
+      console.warn(`Finder map: ${configs[i].label} route failed:`, outcome.reason);
+      return;
+    }
+    const cfg = configs[i];
+    const renderer = new google.maps.DirectionsRenderer({
+      map: _finderMap,
+      directions: outcome.value,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor:   cfg.color,
+        strokeWeight:  cfg.weight,
+        strokeOpacity: cfg.opacity,
+      },
+    });
+    _finderDirectionRenderers.push(renderer);
+    outcome.value.routes[0].overview_path.forEach(p => bounds.extend(p));
+  });
+
+  if (!bounds.isEmpty()) {
+    _finderMap.fitBounds(bounds, { top: 50, right: 50, bottom: 60, left: 50 });
+  }
+
+  // One logo marker per unique station
+  uniqueDetours.forEach(({ station, color }) => {
+    _addFinderStationMarker(station, color);
+  });
+
+  // Origin dot (blue circle) and destination pin — added after routes so they sit on top
+  _addFinderOriginMarker();
+  _addFinderDestMarker();
+}
+
+function _addFinderOriginMarker() {
+  // Use the geocoded start of the first fulfilled route
+  const firstRoute = _finderDirectionRenderers[0];
+  if (!firstRoute) return;
+  const legs  = firstRoute.getDirections()?.routes?.[0]?.legs;
+  const start = legs?.[0]?.start_location;
+  if (!start) return;
+
+  const marker = new google.maps.Marker({
+    position: start,
+    map: _finderMap,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 9,
+      fillColor: "#3B82F6",
+      fillOpacity: 1,
+      strokeColor: "#fff",
+      strokeWeight: 2.5,
+    },
+    title: "Start",
+    zIndex: 1000,
+  });
+  _finderMapOverlays.push(marker);
+}
+
+function _addFinderDestMarker() {
+  // Use the geocoded end of the first fulfilled route
+  const firstRoute = _finderDirectionRenderers[0];
+  if (!firstRoute) return;
+  const legs = firstRoute.getDirections()?.routes?.[0]?.legs;
+  const end  = legs?.[legs.length - 1]?.end_location;
+  if (!end) return;
+
+  const div = document.createElement("div");
+  div.className = "fmap-dest-marker";
+  div.innerHTML = `
+    <div class="fmap-dest-bubble">
+      <svg viewBox="0 0 24 24" class="fmap-dest-icon"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+    </div>
+    <div class="fmap-dest-tail"></div>
+  `;
+
+  const overlay = new google.maps.OverlayView();
+  overlay.onAdd = function () {
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  overlay.draw = function () {
+    const proj = this.getProjection();
+    const pos  = proj.fromLatLngToDivPixel(end);
+    if (pos) {
+      div.style.position = "absolute";
+      div.style.left = (pos.x - 18) + "px";
+      div.style.top  = (pos.y - 48) + "px";
+    }
+  };
+  overlay.onRemove = function () {
+    if (div.parentNode) div.parentNode.removeChild(div);
+  };
+  overlay.setMap(_finderMap);
+  _finderMapOverlays.push(overlay);
+}
+
+function _addFinderStationMarker(station, color) {
+  const brandKey = station.brand_key || "";
+  const logoSrc  = brandKey
+    ? `/assets/icons/brands/${brandKey}.png`
+    : `/assets/icons/brands/independent.png`;
+
+  const div = document.createElement("div");
+  div.className = "fmap-marker";
+
+  div.innerHTML = `
+    <div class="fmap-bubble" style="border-color:${color}">
+      <div class="fmap-icon" style="background:#fff">
+        <img src="${logoSrc}" class="fmap-logo"
+             onerror="this.src='/assets/icons/brands/independent.png'"
+             alt="">
+      </div>
+    </div>
+    <div class="fmap-tail" style="border-top-color:${color}"></div>
+  `;
+
+  const overlay = new google.maps.OverlayView();
+  overlay.onAdd = function () {
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  overlay.draw = function () {
+    const proj = this.getProjection();
+    const pos  = proj.fromLatLngToDivPixel(
+      new google.maps.LatLng(station.lat, station.lng)
+    );
+    if (pos) {
+      div.style.position = "absolute";
+      div.style.left = (pos.x - 18) + "px";
+      div.style.top  = (pos.y - 44) + "px";
+    }
+  };
+  overlay.onRemove = function () {
+    if (div.parentNode) div.parentNode.removeChild(div);
+  };
+  overlay.setMap(_finderMap);
+  _finderMapOverlays.push(overlay);
 }
 
 async function onCardPick(type, effectiveType, station, cardEl, color) {
@@ -445,6 +669,15 @@ let _mapMarkers    = [];
 let _mapStations   = [];
 let _mapUserMarker = null;
 let _mapIdleSkip   = true;  // skip the first idle (fires on init before user moves)
+
+// ─────────────────────────────────────────────────────────
+// FINDER ROUTE MAP globals
+// ─────────────────────────────────────────────────────────
+let _finderMap                = null;
+let _finderMapOverlays        = [];
+let _finderDirectionRenderers = [];
+let _lastOptimiseOrigin       = null;
+let _lastOptimiseDest         = null;
 
 function initMap() {
   const defaultPos = { lat: -33.8688, lng: 151.2093 }; // Sydney CBD fallback

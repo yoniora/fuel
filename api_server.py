@@ -960,7 +960,7 @@ def optimise(body: OptimiseRequest):
             ]
             pre_loaded_data = {"stations": stations_list, "prices": prices_list}
 
-        return run_optimiser(
+        result = run_optimiser(
             origin=body.origin,
             destination=body.destination,
             litres=body.litres,
@@ -970,6 +970,12 @@ def optimise(body: OptimiseRequest):
             l_per_100km=body.lPer100km,
             pre_loaded_data=pre_loaded_data,
         )
+        # Inject brand_key so the frontend can resolve logo images
+        for key in ("cheapest", "fastest", "balanced"):
+            station = result.get(key)
+            if station:
+                station["brand_key"] = _canonical_brand_key(station.get("brand", ""))
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Nearby Fuel</title>
-  <link rel="stylesheet" href="/assets/styles.css?v=21" />
+  <link rel="stylesheet" href="/assets/styles.css?v=23" />
   <!-- Google Fonts: DM Sans (matches Flutter app) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -160,6 +160,18 @@
         <p class="section-sub">Click a card to save your preference and open navigation.</p>
 
         <div class="cards-grid" id="result-cards"></div>
+      </div>
+
+      <!-- Finder route map -->
+      <div id="finder-map-section" class="hidden">
+        <h2 class="section-title" style="margin-top:24px">Route Map</h2>
+        <div id="finder-map-container"></div>
+        <div class="finder-map-legend">
+          <span class="fml-item"><span class="fml-line" style="background:#3D3530;opacity:0.55"></span>Direct</span>
+          <span class="fml-item"><span class="fml-line" style="background:#3B82F6"></span>Balanced</span>
+          <span class="fml-item"><span class="fml-line" style="background:#00C896"></span>Cheapest</span>
+          <span class="fml-item"><span class="fml-line" style="background:#FFB800"></span>Fastest</span>
+        </div>
       </div>
 
     </div>
@@ -322,6 +334,6 @@
   </div>
 </div>
 
-<script src="/assets/app.js?v=21"></script>
+<script src="/assets/app.js?v=23"></script>
 </body>
 </html>

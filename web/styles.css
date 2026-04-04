@@ -1114,3 +1114,127 @@ html, body {
   .stat-chip-label { font-size: 9px; }
   .stat-chip-value { font-size: 13px; }
 }
+
+/* ═══════════════════════════════════════════════
+   FINDER ROUTE MAP
+════════════════════════════════════════════════ */
+#finder-map-container {
+  width: 100%;
+  height: 340px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  margin-top: 12px;
+  background: var(--border-light);
+}
+
+.finder-map-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.fml-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fml-line {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Finder-map station markers */
+.fmap-marker {
+  position: relative;
+  cursor: pointer;
+}
+
+.fmap-bubble {
+  background: #fff;
+  border-radius: 8px;
+  border: 2.5px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  width: 36px;
+  height: 36px;
+  transition: transform 0.15s;
+  overflow: hidden;
+}
+
+.fmap-bubble:hover { transform: scale(1.08); }
+
+.fmap-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.fmap-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 3px;
+  display: block;
+}
+
+.fmap-tail {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top-width: 7px;
+  border-top-style: solid;
+}
+
+/* Destination marker */
+.fmap-dest-marker {
+  position: relative;
+  cursor: default;
+}
+
+.fmap-dest-bubble {
+  background: #2D2015;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.fmap-dest-icon {
+  width: 18px;
+  height: 18px;
+  fill: #fff;
+}
+
+.fmap-dest-tail {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 7px solid #2D2015;
+}
